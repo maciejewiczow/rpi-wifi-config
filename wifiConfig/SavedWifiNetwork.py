@@ -1,11 +1,5 @@
-from typing import Any, Dict, Optional
-
 class SavedWifiNetwork:
-    ssid: str
-    password: Optional[str]
-    isLastUsed: bool
-
-    def __init__(self, ssid: str, password: Optional[str], isLastUsed = False):
+    def __init__(self, ssid: str, password = None, isLastUsed = False):
         self.ssid = ssid
         self.password = password
         self.isLastUsed = isLastUsed
@@ -19,7 +13,7 @@ class SavedWifiNetwork:
         }
 
     @staticmethod
-    def fromDict(data: Dict[str, Any]):
+    def fromDict(data):
         return SavedWifiNetwork(
             ssid=data['ssid'],
             password=data.get('password', None),

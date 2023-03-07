@@ -1,5 +1,4 @@
 import binascii
-from typing import Tuple
 
 wifiSecurityLevelNames = {
     0b000: 'Open',
@@ -19,7 +18,7 @@ class ReachableWifiNetwork:
     signalStrength: int
     security: str
 
-    def __init__(self, data: Tuple[bytes, bytes, int, int, int, int]) -> None:
+    def __init__(self, data) -> None:
         # two last values are broken on the Pico W and mean something differend than the documentation says
         ssidBytes, bssidBytes, channel, signal, security, _ = data
 

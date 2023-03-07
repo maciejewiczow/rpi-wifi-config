@@ -1,8 +1,6 @@
-from typing import Any, Callable, Dict, Iterable, Optional, TypeVar
 
-T = TypeVar('T')
 
-def find(arr: Iterable[T], what: Optional[T] = None, matcher: Optional[Callable[[T], bool]] = None) -> Optional[T]:
+def find(arr, what = None, matcher = None):
     if what is None and matcher is None:
         raise TypeError("Either what or matcher should be specified")
 
@@ -11,13 +9,13 @@ def find(arr: Iterable[T], what: Optional[T] = None, matcher: Optional[Callable[
     except StopIteration:
         return None
 
-def assignDefault(data: Dict[str, Any], key: str, default):
+def assignDefault(data, key, default):
     if key in data:
         return
 
     data[key] = default
 
-def split(path: str):
+def split(path):
     if path == "":
         return ("", "")
     r = path.rsplit("/", 1)
@@ -29,7 +27,7 @@ def split(path: str):
     return (head, r[1])
 
 
-def dirname(path: str):
+def dirname(path):
     return split(path)[0]
 
 def basename(path):

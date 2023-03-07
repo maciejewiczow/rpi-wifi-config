@@ -1,33 +1,37 @@
-from typing import Any, Dict, List, Optional
+import uasyncio
 import json
-from SavedWifiNetwork import SavedWifiNetwork
+from wifiConfig.SavedWifiNetwork import SavedWifiNetwork
+from wifiConfig.ReachableWifiNetwork import ReachableWifiNetwork
+from wifiConfig.util import dirname, assignDefault, find
 from lib.phew.phew import connect_to_wifi, server, access_point, dns
 from lib.phew.phew.template import render_template
 from lib.phew.phew.server import redirect, Request
 from lib.phew.phew.exceptions import APNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
-from ReachableWifiNetwork import ReachableWifiNetwork
-from src.util import dirname
-from util import assignDefault, find
-import uasyncio
 
 class FileFormatError(Exception):
     pass
 
-async def connectToSavedNetworkOrStartConfigurationAP(
+def test():
+    print('test')
+
+async def connectToSavedNetworks(
     savedNetworksFilePath = 'networks.json',
     indexTemplatePath = '/'.join([dirname(__file__), 'index.html']),
     apName = 'Raspberry Pico W',
-    apPassword: Optional[str] = None,
+    apPassword = None,
     wifiConnectionTimeoutSeconds = 30,
     domain = 'config.pico',
     **templateArgs
-) -> Optional[str]:
+):
+    """ Tries to connect to any of networks saved in the specified file. If that does not work, then starts a configuration access point """
     import network
 
     try:
         with open(savedNetworksFilePath, 'r') as f:
             networksData = json.load(f)
-    except FileNotFoundError:
+        print('Loaded saved networks')
+    except OSError:
+        print('Network file not found, creating empty one')
         networksData = []
         with open(savedNetworksFilePath, 'w') as f:
             f.write("[]\n")
@@ -36,6 +40,7 @@ async def connectToSavedNetworkOrStartConfigurationAP(
         raise FileFormatError("Thie wifi data file should contain a top-level array")
 
     if len(networksData) == 0:
+        print('No saved networks, starting the access point')
         return await startConfigurationAP(
             apName=apName,
             indexTemplatePath=indexTemplatePath,
@@ -95,12 +100,12 @@ async def startConfigurationAP(
     apName: str,
     indexTemplatePath: str,
     savedNetworksFilePath: str,
-    savedNetworks: List[SavedWifiNetwork],
-    apPassword: Optional[str],
+    savedNetworks,
+    apPassword,
     domain: str,
-    templateArgs: Dict[str, Any]
+    templateArgs
 ) -> str:
-    ipAddrFromNewNetwork: Optional[str] = None
+    ipAddrFromNewNetwork = None
     ap = access_point(ssid=apName, password=apPassword)
 
     @server.route("/", methods=['GET'])
