@@ -1,6 +1,6 @@
 import uasyncio
 import json
-from wifiConfig.SavedWifiNetwork import SavedWifiNetwork
+from wifiConfig.KnownWifiNetwork import KnownWifiNetwork
 from wifiConfig.ReachableWifiNetwork import ReachableWifiNetwork
 from wifiConfig.util import dirname, assignDefault, find
 from lib.phew.phew import connect_to_wifi, server, access_point, dns
@@ -15,7 +15,7 @@ def test():
     print('test')
 
 async def connectToSavedNetworks(
-    savedNetworksFilePath = 'networks.json',
+    knownNetworksFilePath = 'networks.json',
     indexTemplatePath = '/'.join([dirname(__file__), 'index.html']),
     apName = 'Raspberry Pico W',
     apPassword = None,
@@ -27,13 +27,13 @@ async def connectToSavedNetworks(
     import network
 
     try:
-        with open(savedNetworksFilePath, 'r') as f:
+        with open(knownNetworksFilePath, 'r') as f:
             networksData = json.load(f)
         print('Loaded saved networks')
     except OSError:
         print('Network file not found, creating empty one')
         networksData = []
-        with open(savedNetworksFilePath, 'w') as f:
+        with open(knownNetworksFilePath, 'w') as f:
             f.write("[]\n")
 
     if type(networksData) is not list:
@@ -44,14 +44,14 @@ async def connectToSavedNetworks(
         return await startConfigurationAP(
             apName=apName,
             indexTemplatePath=indexTemplatePath,
-            savedNetworksFilePath=savedNetworksFilePath,
-            savedNetworks=[],
+            knownNetworksFilePath=knownNetworksFilePath,
+            knownNetworks=[],
             apPassword=apPassword,
             domain=domain,
             templateArgs=templateArgs,
         )
 
-    savedNetworks = [SavedWifiNetwork.fromDict(network) for network in networksData]
+    knownNetworks = [KnownWifiNetwork.fromDict(network) for network in networksData]
 
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -59,7 +59,7 @@ async def connectToSavedNetworks(
     reachableNetworks = [ReachableWifiNetwork(entry) for entry in wlan.scan()]
     reachableNetworks.sort(reverse=True, key = lambda network: network.signalStrength)
 
-    lastUsedNetwork = find(savedNetworks, matcher=lambda net: net.isLastUsed)
+    lastUsedNetwork = find(knownNetworks, matcher=lambda net: net.isLastUsed)
 
     if lastUsedNetwork is not None and find(reachableNetworks, matcher=lambda net: lastUsedNetwork.ssid == net.ssid) is not None:
         try:
@@ -75,7 +75,7 @@ async def connectToSavedNetworks(
             pass
 
     for net in reachableNetworks:
-        saved = find(savedNetworks, matcher=lambda saved: saved.ssid == net.ssid)
+        saved = find(knownNetworks, matcher=lambda saved: saved.ssid == net.ssid)
 
         if saved is not None:
             try:
@@ -89,8 +89,8 @@ async def connectToSavedNetworks(
     return await startConfigurationAP(
         apName,
         indexTemplatePath,
-        savedNetworksFilePath,
-        savedNetworks,
+        knownNetworksFilePath,
+        knownNetworks,
         apPassword,
         domain,
         templateArgs
@@ -99,8 +99,8 @@ async def connectToSavedNetworks(
 async def startConfigurationAP(
     apName: str,
     indexTemplatePath: str,
-    savedNetworksFilePath: str,
-    savedNetworks,
+    knownNetworksFilePath: str,
+    knownNetworks,
     apPassword,
     domain: str,
     templateArgs
@@ -114,13 +114,14 @@ async def startConfigurationAP(
         networks.sort(reverse=True, key = lambda network: network.signalStrength)
 
         assignDefault(templateArgs, 'title', 'Configure the WiFi connectivity')
-        templateArgs['__dirname__'] = dirname(__file__)
+        templateArgs['rootDir'] = dirname(__file__)
 
         return render_template(indexTemplatePath, **templateArgs, networks=networks)
 
-    @server.route("/connect", methods=['POST'])
+    @server.route("/connect", methods=['POST'], isAsync=True)
     async def connectToWifi(req: Request):
         nonlocal ipAddrFromNewNetwork
+        nonlocal ap
 
         ssid = req.data.get('ssid', None)
         password = req.data.get('password', None)
@@ -131,35 +132,38 @@ async def startConfigurationAP(
         try:
             ip = await connect_to_wifi(ssid, password)
         except WrongPasswordException:
+            ap = access_point(ssid=apName, password=apPassword)
             return "Wrong password", 401
         except APNotFoundException:
             return "Unknown SSID", 404
         except ConnectingFailedException:
-            return "Failed to connect", 408
+            ap = access_point(ssid=apName, password=apPassword)
+            return  "Failed to connect", 408
 
         if ip is None:
+            ap = access_point(ssid=apName, password=apPassword)
             return "Failed to connect", 408
 
         ipAddrFromNewNetwork = ip
 
-        savedNet = find(enumerate(savedNetworks), matcher=lambda net: net[1].ssid == ssid)
+        knownNet = find(enumerate(knownNetworks), matcher=lambda net: net[1].ssid == ssid)
 
-        newNet = SavedWifiNetwork(
+        newNet = KnownWifiNetwork(
             ssid=ssid,
             password=password,
             isLastUsed=True
         )
 
-        for net in savedNetworks:
+        for net in knownNetworks:
             net.isLastUsed = False
 
-        if savedNet is None:
-            savedNetworks.append(newNet)
+        if knownNet is None:
+            knownNetworks.append(newNet)
         else:
-            savedNetworks[savedNet[0]] = newNet
+            knownNetworks[knownNet[0]] = newNet
 
-        with open(savedNetworksFilePath, 'w') as f:
-            json.dump([net.__dict__ for net in savedNetworks], f)
+        with open(knownNetworksFilePath, 'w') as f:
+            json.dump([net.__dict__ for net in knownNetworks], f)
 
         srvTask.cancel()
         return "Connected", 200
@@ -172,10 +176,11 @@ async def startConfigurationAP(
     dnsTask = dns.run_catchall(ip)
     srvTask = server.run(host=ip)
 
-    try:
-        await srvTask
-    except uasyncio.CancelledError:
-        dnsTask.cancel()
+    # awaiting the server task did not work
+    while ipAddrFromNewNetwork is None:
+        await uasyncio.sleep_ms(300)
+
+    dnsTask.cancel()
 
     if ipAddrFromNewNetwork is None:
         raise RuntimeError("New ip was None after server was shut down. This should not have been possible")

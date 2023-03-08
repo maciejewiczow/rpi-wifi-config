@@ -33,7 +33,7 @@
             background: #c8d3e6;
         }
         main {
-            max-width: 450px;
+            max-width: 560px;
             margin: 0 auto;
             padding-top: 24px;
         }
@@ -45,14 +45,14 @@
             font-size: 75%;
         }
         .network-wrapper {
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             background: #FAFCFD;
             padding: 16px 24px;
             border-radius: 3px;
             display: grid;
-            grid-template-rows: auto atuo;
+            grid-template-rows: auto auto;
             grid-auto-rows: auto;
-            grid-template-columns: auto 2fr 1fr;
+            grid-template-columns: min-content auto auto;
             row-gap: 4px;
             column-gap: 24px;
             grid-template-areas:
@@ -145,6 +145,10 @@
         .label-text {
             grid-area: label;
         }
+        .error {
+            margin-top: 2px;
+            color: #9b1a11;
+        }
     </style>
 </head>
 
@@ -152,54 +156,10 @@
     <main>
         <header class="main-header">
             <h1 class="title">Choose a network</h1>
-            <span class="subtext">2 networks in range</span>
+            <span class="subtext">{{len(networks)}} networks in range</span>
         </header>
         <ul class="network-list">
-            <!-- {{ render_template(__dirname__ + '/network.html', network=network) for network in networks }} -->
-            <li class="network-wrapper">
-                <h2 class="ssid">Test ssid</h3>
-                <div class="strength">-58 dBm</div>
-                <div class="security subtext">WPA2</div>
-                <div class="icon">
-                    <svg
-                        height="40px"
-                        width="40px"
-                        version="1.1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlns:xlink="http://www.w3.org/1999/xlink"
-                        viewBox="0 0 489.3 489.3"
-                        xml:space="preserve"
-                        fill="#c8d3e6"
-                    >
-                        <path
-                            d="M481.65,157.675c-130.7-130.6-343.3-130.6-474,0c-10.2,10.2-10.2,26.8,0,37.1c10.2,10.2,26.8,10.2,37.1,0
-                            c110.2-110.3,289.6-110.3,399.9,0c5.1,5.1,11.8,7.7,18.5,7.7s13.4-2.6,18.5-7.7C491.85,184.575,491.85,167.975,481.65,157.675z"
-                        />
-                        <path d="M79.55,229.675c-10.2,10.2-10.2,26.8,0,37.1c10.2,10.2,26.8,10.2,37.1,0c70.6-70.6,185.5-70.6,256.1,0
-                            c5.1,5.1,11.8,7.7,18.5,7.7s13.4-2.6,18.5-7.7c10.2-10.2,10.2-26.8,0-37.1C318.75,138.575,170.55,138.575,79.55,229.675z"
-                        />
-                        <path d="M150.35,300.475c-10.2,10.2-10.2,26.8,0,37.1c10.2,10.2,26.8,10.2,37.1,0c31.5-31.6,82.9-31.6,114.4,0
-                            c5.1,5.1,11.8,7.7,18.5,7.7s13.4-2.6,18.5-7.7c10.2-10.2,10.2-26.8,0-37C286.95,248.475,202.35,248.475,150.35,300.475z"
-                        />
-                        <circle cx="244.65" cy="394.675" r="34.9" fill="#5F6DFA"/>
-                    </svg>
-                </div>
-                <form class="password-form" aria-hidden="true">
-                    <input class="ssid-input" type="hidden" value="{{network.ssid}}" />
-                    <label class="password-label">
-                        <div class="subtext label-text">Password</div>
-                        <input class="password-input" type="password" />
-                        <button class="connect-button" type="submit">
-                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20px" height="20px" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid">
-                                <circle cx="50" cy="50" r="32" stroke-width="8" stroke="#5F6DFA" stroke-dasharray="50.26548245743669 50.26548245743669" fill="none" stroke-linecap="round">
-                                  <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" keyTimes="0;1" values="0 50 50;360 50 50"></animateTransform>
-                                </circle>
-                            </svg>
-                            <span class="button-text">Connect ➜</span>
-                        </button>
-                    </label>
-                </form>
-            </li>
+            {{ (render_template(rootDir + '/network.html', network=network) for network in networks) }}
         </ul>
     </main>
 
@@ -222,7 +182,29 @@
                 const ssidInput = form.querySelector('.ssid-input')
                 const passInput = form.querySelector('.password-input')
 
+                const button = form.querySelector('.connect-button')
+                const errorElement = form.querySelector('.error')
 
+                button.classList.add('loading')
+                button.setAttribute('disabled', 'true')
+                try {
+                    const res = await fetch('/connect', {
+                        body: JSON.stringify({ ssid: ssidInput.value, password: passInput.value }),
+                        method: 'POST',
+                        headers: {
+                            'content-type': 'application/json'
+                        }
+                    })
+
+                    if (!res.ok) {
+                        errorElement.innerText = await res.text();
+                    }
+                } catch (e) {
+                    errorElement.innerText = e.message;
+                } finally {
+                    button.classList.remove('loading')
+                    button.removeAttribute('disabled')
+                }
             })
         })
     </script>

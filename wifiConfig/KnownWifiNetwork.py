@@ -1,4 +1,4 @@
-class SavedWifiNetwork:
+class KnownWifiNetwork:
     def __init__(self, ssid: str, password = None, isLastUsed = False):
         self.ssid = ssid
         self.password = password
@@ -14,7 +14,7 @@ class SavedWifiNetwork:
 
     @staticmethod
     def fromDict(data):
-        return SavedWifiNetwork(
+        return KnownWifiNetwork(
             ssid=data['ssid'],
             password=data.get('password', None),
             isLastUsed=bool(data.get('isLastUsed', False))
