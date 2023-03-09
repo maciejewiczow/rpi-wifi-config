@@ -4,10 +4,10 @@ It also saves the networks that is used to a specified file, and then later on r
 or any other known network in range. If that does not succeed, it starts an access point with a captive portal website, that allows the user
 to select a network and input it's password.
 
-# Installation
+## Installation
 Add this repo as a git submodule of your project
 
-# Examples
+## Examples
 Try to connect to one of networks saved in the default file location, using the library internal captive portal webpage template, and
 print the acquired ip address.
 ```py
@@ -21,7 +21,7 @@ uasyncio.run(main())
 ```
 
 Try to connect to one of networks saved in a `/example/file.json` file, if not possible start open access point named `Configure me`
-with captive portal that uses the template `page.html` as the main page, passing values `val1` and `val2` to be the template.
+with captive portal that uses the template `page.html` as the main page, passing values `val1` and `val2` to the template.
 Finally print the acquired ip address.
 ```py
 import uasyncio
