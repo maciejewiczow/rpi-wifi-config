@@ -1,3 +1,3 @@
-from .connectToSavedNetworks import *
+from .tryConnectingToKnownNetworks import *
 from .ReachableWifiNetwork import *
 from .KnownWifiNetwork import *

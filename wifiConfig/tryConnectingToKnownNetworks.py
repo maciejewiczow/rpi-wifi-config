@@ -3,18 +3,14 @@ import json
 from wifiConfig.KnownWifiNetwork import KnownWifiNetwork
 from wifiConfig.ReachableWifiNetwork import ReachableWifiNetwork
 from wifiConfig.util import dirname, assignDefault, find
-from lib.phew.phew import connect_to_wifi, server, access_point, dns
-from lib.phew.phew.template import render_template
-from lib.phew.phew.server import redirect, Request
-from lib.phew.phew.exceptions import APNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
+from lib.phew import connect_to_wifi, server, access_point, dns, render_template, redirect
+from lib.phew.phew.server import Request
+from lib.phew.phew.exceptions import SSIDNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
 
 class FileFormatError(Exception):
     pass
 
-def test():
-    print('test')
-
-async def connectToSavedNetworks(
+async def tryConnectingToKnownNetworks(
     knownNetworksFilePath = 'networks.json',
     indexTemplatePath = '/'.join([dirname(__file__), 'index.html']),
     apName = 'Raspberry Pico W',
@@ -23,7 +19,26 @@ async def connectToSavedNetworks(
     domain = 'config.pico',
     **templateArgs
 ):
-    """ Tries to connect to any of networks saved in the specified file. If that does not work, then starts a configuration access point """
+    """Try connectting to a known wifi network or start a configuration access point if that fails
+
+    Tries to connect to any of networks saved in the specified file that are in range (first tries the one that was used the last time).
+    If that does not work, then starts a configuration access point with a captive portal,
+    serving a web page that allows the user to configure the desired Wifi credentials. The credentials are then saved in the file for future use.
+
+    Arguments:
+        knownNetworkFilePath - path to the file that contains a list of known networks in a json format. If the specified file does not exist,
+            it will be created
+        indexTemplatePath - path to the template (see [templates](https://github.com/maciejewiczow/phew#templates)) that will be rendered as the index
+            page of the captive portal. The template will get a list of reachable wifi networks in a 'networks' parameter
+        apName - the desired SSID of the access point that will be started
+        apPassword - password of the access point. Pass None for open access point
+        wifiConnectionTimeout - how long should the function wait before giving up on trying to connect to networks
+        domain - the captive portal domain
+        templateArgs - additional arguments that will be passed to the index template of the captive portal
+
+    Return:
+        Returns the ip address acquired after connecting to one of the available networks
+    """
     import network
 
     try:
@@ -114,7 +129,7 @@ async def startConfigurationAP(
         networks.sort(reverse=True, key = lambda network: network.signalStrength)
 
         assignDefault(templateArgs, 'title', 'Configure the WiFi connectivity')
-        templateArgs['rootDir'] = dirname(__file__)
+        assignDefault(templateArgs, 'rootDir', dirname(__file__))
 
         return render_template(indexTemplatePath, **templateArgs, networks=networks)
 
@@ -134,7 +149,7 @@ async def startConfigurationAP(
         except WrongPasswordException:
             ap = access_point(ssid=apName, password=apPassword)
             return "Wrong password", 401
-        except APNotFoundException:
+        except SSIDNotFoundException:
             return "Unknown SSID", 404
         except ConnectingFailedException:
             ap = access_point(ssid=apName, password=apPassword)

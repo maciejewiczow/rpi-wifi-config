@@ -1,7 +1,7 @@
 import uasyncio
-from wifiConfig.connectToSavedNetworks import connectToSavedNetworks
+from wifiConfig.tryConnectingToKnownNetworks import tryConnectingToKnownNetworks
 
 async def main():
-    print(await connectToSavedNetworks())
+    print(await tryConnectingToKnownNetworks())
 
 uasyncio.run(main())
