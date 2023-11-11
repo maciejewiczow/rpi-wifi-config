@@ -1,8 +1,8 @@
 import uasyncio
 import json
-from wifiConfig.KnownWifiNetwork import KnownWifiNetwork
-from wifiConfig.ReachableWifiNetwork import ReachableWifiNetwork
-from wifiConfig.util import dirname, assignDefault, find
+from .KnownWifiNetwork import KnownWifiNetwork
+from .ReachableWifiNetwork import ReachableWifiNetwork
+from .util import dirname, assignDefault, find
 from lib.phew import connect_to_wifi, server, access_point, dns, render_template, redirect
 from lib.phew.phew.server import Request
 from lib.phew.phew.exceptions import SSIDNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
@@ -10,12 +10,28 @@ from lib.phew.phew.exceptions import SSIDNotFoundException, ConnectingFailedExce
 class FileFormatError(Exception):
     pass
 
+def readKnownNetworks(knownNetworksFilePath: str):
+    try:
+        with open(knownNetworksFilePath, 'r') as f:
+            networksData = json.load(f)
+        print('Loaded saved networks')
+    except OSError:
+        print('Network file not found, creating empty one')
+        networksData = []
+        with open(knownNetworksFilePath, 'w') as f:
+            f.write("[]\n")
+
+    if type(networksData) is not list:
+        raise FileFormatError("Thie wifi data file should contain a top-level array")
+
+    return [KnownWifiNetwork.fromDict(network) for network in networksData]
+
 async def tryConnectingToKnownNetworks(
     knownNetworksFilePath = 'networks.json',
     indexTemplatePath = '/'.join([dirname(__file__), 'index.html']),
     apName = 'Raspberry Pico W',
     apPassword = None,
-    wifiConnectionTimeoutSeconds = 30,
+    wifiConnectionTimeoutSeconds = 10,
     domain = 'config.pico',
     **templateArgs
 ):
@@ -41,20 +57,9 @@ async def tryConnectingToKnownNetworks(
     """
     import network
 
-    try:
-        with open(knownNetworksFilePath, 'r') as f:
-            networksData = json.load(f)
-        print('Loaded saved networks')
-    except OSError:
-        print('Network file not found, creating empty one')
-        networksData = []
-        with open(knownNetworksFilePath, 'w') as f:
-            f.write("[]\n")
+    knownNetworks = readKnownNetworks(knownNetworksFilePath)
 
-    if type(networksData) is not list:
-        raise FileFormatError("Thie wifi data file should contain a top-level array")
-
-    if len(networksData) == 0:
+    if len(knownNetworks) == 0:
         print('No saved networks, starting the access point')
         return await startConfigurationAP(
             apName=apName,
@@ -65,8 +70,6 @@ async def tryConnectingToKnownNetworks(
             domain=domain,
             templateArgs=templateArgs,
         )
-
-    knownNetworks = [KnownWifiNetwork.fromDict(network) for network in networksData]
 
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -105,23 +108,26 @@ async def tryConnectingToKnownNetworks(
         apName,
         indexTemplatePath,
         knownNetworksFilePath,
-        knownNetworks,
         apPassword,
         domain,
-        templateArgs
+        templateArgs,
+        knownNetworks,
     )
 
 async def startConfigurationAP(
-    apName: str,
-    indexTemplatePath: str,
-    knownNetworksFilePath: str,
-    knownNetworks,
-    apPassword,
-    domain: str,
-    templateArgs
+    apName = 'Raspberry Pico W',
+    indexTemplatePath = '/'.join([dirname(__file__), 'index.html']),
+    knownNetworksFilePath = 'networks.json',
+    apPassword = None,
+    domain = 'config.pico',
+    templateArgs = {},
+    knownNetworks = None,
 ) -> str:
     ipAddrFromNewNetwork = None
     ap = access_point(ssid=apName, password=apPassword)
+
+    if knownNetworks is None:
+        knownNetworks = readKnownNetworks(knownNetworksFilePath)
 
     @server.route("/", methods=['GET'])
     def index(_):
@@ -161,7 +167,7 @@ async def startConfigurationAP(
 
         ipAddrFromNewNetwork = ip
 
-        knownNet = find(enumerate(knownNetworks), matcher=lambda net: net[1].ssid == ssid)
+        knownNet = find(knownNetworks, matcher=lambda net: net.ssid == ssid)
 
         newNet = KnownWifiNetwork(
             ssid=ssid,

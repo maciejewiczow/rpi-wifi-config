@@ -1,6 +1,5 @@
 <li class="network-wrapper">
     <h2 class="ssid">{{network.ssid}}</h3>
-    <div class="strength">{{network.signalStrength}} dBm</div>
     <div class="security subtext">{{network.security}}</div>
     <div class="icon">
         <svg
@@ -27,6 +26,7 @@
             />
             <circle cx="244.65" cy="394.675" r="34.9" fill="#5F6DFA"/>
         </svg>
+        <div class="strength">{{network.signalStrength}} dBm</div>
     </div>
     <form class="password-form" aria-hidden="true">
         <input class="ssid-input" type="hidden" value="{{network.ssid}}" />
