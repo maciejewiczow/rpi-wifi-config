@@ -3,9 +3,9 @@ import json
 from .KnownWifiNetwork import KnownWifiNetwork
 from .ReachableWifiNetwork import ReachableWifiNetwork
 from .util import dirname, assignDefault, find
-from lib.phew import connect_to_wifi, server, access_point, dns, render_template, redirect
-from lib.phew.phew.server import Request
-from lib.phew.phew.exceptions import SSIDNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
+from lib.phew import connect_to_wifi, server, access_point, dns, render_template
+from lib.phew.server import Request, redirect
+from lib.phew.exceptions import SSIDNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
 
 class FileFormatError(Exception):
     pass

@@ -1,5 +1,3 @@
-
-
 def find(arr, what = None, matcher = None):
     if what is None and matcher is None:
         raise TypeError("Either what or matcher should be specified")

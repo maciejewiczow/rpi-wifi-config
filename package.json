@@ -1,0 +1,39 @@
+{
+    "urls": [
+        [
+            "wifiConfig/__init__.py",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/__init__.py"
+        ],
+        [
+            "wifiConfig/KnownWifiNetwork.py",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/KnownWifiNetwork.py"
+        ],
+        [
+            "wifiConfig/ReachableWifiNetwork.py",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/ReachableWifiNetwork.py"
+        ],
+        [
+            "wifiConfig/util.py",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/util.py"
+        ],
+        [
+            "wifiConfig/tryConnectingToKnownNetworks.py",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/tryConnectingToKnownNetworks.py"
+        ],
+        [
+            "wifiConfig/network.html",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/network.html"
+        ],
+        [
+            "wifiConfig/index.html",
+            "github:maciejewiczow/rpi-wifi-config/wifiConfig/index.html"
+        ]
+    ],
+    "deps": [
+        [
+            "github:maciejewiczow/phew",
+            "main"
+        ]
+    ],
+    "version": "0.1"
+}
