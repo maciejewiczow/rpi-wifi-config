@@ -5,14 +5,19 @@ or any other known network in range. If that does not succeed, it starts an acce
 to select a network and input it's password.
 
 ## Installation
-Add this repo as a git submodule of your project
+```py
+import mip
+mip.install('github:maciejewiczow/rpi-wifi-config')
+```
 
 ## Examples
+
+### With default args
 Try to connect to one of networks saved in the default file location, using the library internal captive portal webpage template, and
 print the acquired ip address.
 ```py
 import uasyncio
-from wifiConfig.tryConnectingToKnownNetworks import tryConnectingToKnownNetworks
+from wifiConfig import tryConnectingToKnownNetworks
 
 async def main():
     print(await tryConnectingToKnownNetworks())
@@ -20,12 +25,13 @@ async def main():
 uasyncio.run(main())
 ```
 
+### Custom config
 Try to connect to one of networks saved in a `/example/file.json` file, if not possible start open access point named `Configure me`
 with captive portal that uses the template `page.html` as the main page, passing values `val1` and `val2` to the template.
 Finally print the acquired ip address.
 ```py
 import uasyncio
-from wifiConfig.tryConnectingToKnownNetworks import tryConnectingToKnownNetworks
+from wifiConfig import tryConnectingToKnownNetworks
 
 async def main():
     print(
@@ -37,6 +43,17 @@ async def main():
             val2=2
         )
     )
+
+uasyncio.run(main())
+```
+
+### Start config access point manually
+```py
+import uasyncio
+from wifiConfig import startConfigurationAP
+
+async def main():
+    await startConfigurationAP()
 
 uasyncio.run(main())
 ```
