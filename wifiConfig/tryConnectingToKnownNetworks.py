@@ -1,3 +1,4 @@
+from matplotlib.colors import NoNorm
 import uasyncio
 import json
 from .KnownWifiNetwork import KnownWifiNetwork
@@ -53,7 +54,10 @@ async def tryConnectingToKnownNetworks(
         templateArgs - additional arguments that will be passed to the index template of the captive portal
 
     Return:
-        Returns the ip address acquired after connecting to one of the available networks
+        Returns a tuple with:
+            the ip address acquired after connecting to one of the available networks
+            the network ssid
+            the network password
     """
     import network
 
@@ -88,7 +92,7 @@ async def tryConnectingToKnownNetworks(
             )
 
             if result is not None:
-                return result
+                return result, lastUsedNetwork.ssid, lastUsedNetwork.password
         except WifiException:
             pass
 
@@ -100,7 +104,7 @@ async def tryConnectingToKnownNetworks(
                 result = await connect_to_wifi(ssid=saved.ssid, password=saved.password, timeout_seconds=wifiConnectionTimeoutSeconds)
 
                 if result is not None:
-                    return result
+                    return result, saved.ssid, saved.password
             except WifiException:
                 pass
 
@@ -122,8 +126,10 @@ async def startConfigurationAP(
     domain = 'config.pico',
     templateArgs = {},
     knownNetworks = None,
-) -> str:
+):
     ipAddrFromNewNetwork = None
+    ssid = None
+    password = None
     ap = access_point(ssid=apName, password=apPassword)
 
     if knownNetworks is None:
@@ -142,6 +148,8 @@ async def startConfigurationAP(
     @server.route("/connect", methods=['POST'], isAsync=True)
     async def connectToWifi(req: Request):
         nonlocal ipAddrFromNewNetwork
+        nonlocal ssid
+        nonlocal password
         nonlocal ap
 
         ssid = req.data.get('ssid', None)
@@ -206,4 +214,4 @@ async def startConfigurationAP(
     if ipAddrFromNewNetwork is None:
         raise RuntimeError("New ip was None after server was shut down. This should not have been possible")
 
-    return ipAddrFromNewNetwork
+    return ipAddrFromNewNetwork, ssid, password
