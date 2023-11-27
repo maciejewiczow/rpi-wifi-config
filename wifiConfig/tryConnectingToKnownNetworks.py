@@ -1,4 +1,3 @@
-from matplotlib.colors import NoNorm
 import uasyncio
 import json
 from .KnownWifiNetwork import KnownWifiNetwork
