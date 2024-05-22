@@ -6,6 +6,7 @@ from .util import dirname, assignDefault, find
 from lib.phew import connect_to_wifi, server, access_point, dns, render_template
 from lib.phew.server import Request, redirect
 from lib.phew.exceptions import SSIDNotFoundException, ConnectingFailedException, WifiException, WrongPasswordException
+import gc
 
 class FileFormatError(Exception):
     pass
@@ -91,6 +92,7 @@ async def tryConnectingToKnownNetworks(
             )
 
             if result is not None:
+                gc.collect()
                 return result, lastUsedNetwork.ssid, lastUsedNetwork.password
         except WifiException:
             pass
@@ -103,9 +105,12 @@ async def tryConnectingToKnownNetworks(
                 result = await connect_to_wifi(ssid=saved.ssid, password=saved.password, timeout_seconds=wifiConnectionTimeoutSeconds)
 
                 if result is not None:
+                    gc.collect()
                     return result, saved.ssid, saved.password
             except WifiException:
                 pass
+
+    gc.collect()
 
     return await startConfigurationAP(
         apName,
@@ -209,6 +214,9 @@ async def startConfigurationAP(
         await uasyncio.sleep_ms(300)
 
     dnsTask.cancel()
+    srvTask.cancel()
+
+    gc.collect()
 
     if ipAddrFromNewNetwork is None:
         raise RuntimeError("New ip was None after server was shut down. This should not have been possible")

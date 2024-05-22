@@ -16,5 +16,7 @@
     "picowgo.autoConnect": false,
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingModuleSource": "none"
-    }
+    },
+    "micropico.syncFolder": "",
+    "micropico.openOnStart": true
 }
